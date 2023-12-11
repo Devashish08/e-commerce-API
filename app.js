@@ -28,29 +28,35 @@ const errorHandlerMiddlerWare = require("./middleware/error-handler");
 // Initialize Express app
 const app = express();
 
-// Use morgan for logging HTTP requests
+// Trust the first proxy
 app.set("trust proxy", 1);
+
+// Apply rate limiting to the application
 app.use(
   rateLimiter({
-    windowMs: 15 * 60 * 1000,
-    max: 100
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
   })
 );
-app.use(xss());
-app.use(helmet());
-app.use(cors());
-app.use(mongoSanitize());
+// Use security middlewares
+app.use(xss()); // Protects against cross-site scripting (XSS) attacks
+app.use(helmet()); // Sets various HTTP headers to help protect your app
+app.use(cors()); // Enables Cross-Origin Resource Sharing (CORS)
+app.use(mongoSanitize()); // Sanitizes user-supplied data to prevent MongoDB Operator Injection
 
 // Parse JSON request bodies
 app.use(express.json());
 
 // Parse cookies
 app.use(cookieParser(process.env.JWT_SECRET));
-app.use(express.static("./public"));
-app.use(fileUpload());
-// Define a simple route for the root URL ("/")
 
-// Use the auth routes for all requests to "/api/v1/auth"
+// Serve static files from the "public" directory
+app.use(express.static("./public"));
+
+// Enable file upload
+app.use(fileUpload());
+
+// Use the defined routes for all requests to "/api/v1/*"
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/products", productRoutes);
@@ -74,4 +80,5 @@ const start = async () => {
   }
 };
 
+// Start the application
 start();
